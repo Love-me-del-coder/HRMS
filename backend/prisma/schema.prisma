@@ -1,0 +1,527 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ==========================================
+// HRMS SaaS Platform - Database Schema
+// ==========================================
+
+model Company {
+  id                 String   @id @default(uuid())
+  name               String
+  registrationNo     String   @unique
+  industry           String
+  logo               String?
+  address            String
+  city               String
+  country            String
+  phone              String
+  email              String   @unique
+  website            String?
+  employeeCount      Int      @default(0)
+  timezone           String   @default("UTC")
+  currency           String   @default("USD")
+  subscriptionPlan   String   @default("starter")
+  subscriptionStatus String   @default("active")
+  createdAt          DateTime @default(now())
+
+  // Relations
+  users               User[]
+  departments         Department[]
+  employees           Employee[]
+  jobRequisitions     JobRequisition[]
+  candidates          Candidate[]
+  interviews          Interview[]
+  payrollStructures   PayrollStructure[]
+  payrollRuns         PayrollRun[]
+  payslips            Payslip[]
+  attendanceRecords   AttendanceRecord[]
+  shifts              Shift[]
+  leaveTypes          LeaveType[]
+  leaveRequests       LeaveRequest[]
+  goals               Goal[]
+  kpis                KPI[]
+  performanceReviews  PerformanceReview[]
+  courses             Course[]
+  trainingAssignments TrainingAssignment[]
+  certificates        Certificate[]
+  complianceItems     ComplianceItem[]
+  auditLogs           AuditLogEntry[]
+  notifications       Notification[]
+}
+
+model User {
+  id         String    @id @default(uuid())
+  companyId  String
+  employeeId String?   @unique
+  email      String    @unique
+  password   String
+  firstName  String
+  lastName   String
+  role       String
+  avatar     String?
+  isActive   Boolean   @default(true)
+  lastLogin  DateTime?
+  createdAt  DateTime  @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+}
+
+model Department {
+  id            String   @id @default(uuid())
+  companyId     String
+  name          String
+  description   String?
+  managerId     String?
+  parentId      String?
+  employeeCount Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  company   Company      @relation(fields: [companyId], references: [id])
+  employees Employee[]
+  jobs      JobRequisition[]
+}
+
+model Employee {
+  id                       String   @id @default(uuid())
+  companyId                String
+  departmentId             String
+  employeeNo               String
+  firstName                String
+  lastName                 String
+  email                    String
+  phone                    String
+  dateOfBirth              DateTime
+  gender                   String
+  maritalStatus            String
+  nationality              String
+  address                  String
+  city                     String
+  country                  String
+  position                 String
+  jobTitle                 String
+  employmentType           String
+  hireDate                 DateTime
+  status                   String
+  salary                   Float
+  currency                 String
+  reportingToId            String?
+  avatar                   String?
+  emergencyContactName     String?
+  emergencyContactPhone    String?
+  emergencyContactRelation String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  company      Company      @relation(fields: [companyId], references: [id])
+  department   Department   @relation(fields: [departmentId], references: [id])
+  user         User?
+  
+  // Self-relation for managers
+  manager      Employee?    @relation("ManagerToEmployee", fields: [reportingToId], references: [id])
+  subordinates Employee[]   @relation("ManagerToEmployee")
+
+  documents           EmployeeDocument[]
+  employmentHistory   EmploymentHistory[]
+  payslips            Payslip[]
+  attendanceRecords   AttendanceRecord[]
+  leaveRequests       LeaveRequest[]
+  leaveBalances       LeaveBalance[]
+  goals               Goal[]
+  kpis                KPI[]
+  reviewsAsEmployee   PerformanceReview[] @relation("Reviewee")
+  reviewsAsReviewer   PerformanceReview[] @relation("Reviewer")
+  trainingAssignments TrainingAssignment[]
+  certificates        Certificate[]
+  complianceItems     ComplianceItem[]
+}
+
+model EmploymentHistory {
+  id            String   @id @default(uuid())
+  employeeId    String
+  type          String
+  description   String
+  fromValue     String?
+  toValue       String?
+  effectiveDate DateTime
+  createdAt     DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model EmployeeDocument {
+  id         String   @id @default(uuid())
+  employeeId String
+  name       String
+  type       String
+  fileName   String
+  fileSize   Int
+  uploadedAt DateTime @default(now())
+
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model JobRequisition {
+  id              String    @id @default(uuid())
+  companyId       String
+  departmentId    String
+  title           String
+  description     String
+  requirements    String[]
+  employmentType  String
+  location        String
+  salaryMin       Float?
+  salaryMax       Float?
+  currency        String
+  openings        Int
+  filled          Int       @default(0)
+  status          String
+  postedDate      DateTime?
+  closingDate     DateTime?
+  hiringManagerId String?
+  candidateCount  Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  department Department  @relation(fields: [departmentId], references: [id])
+  candidates Candidate[]
+  interviews Interview[]
+}
+
+model Candidate {
+  id             String   @id @default(uuid())
+  companyId      String
+  jobId          String
+  firstName      String
+  lastName       String
+  email          String
+  phone          String
+  resumeUrl      String?
+  coverLetter    String?
+  stage          String   @default("applied")
+  rating         Int      @default(0)
+  source         String
+  experience     Int      @default(0)
+  currentCompany String?
+  expectedSalary Float?
+  notes          String?
+  appliedDate    DateTime @default(now())
+  lastUpdated    DateTime @updatedAt
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  job        JobRequisition @relation(fields: [jobId], references: [id])
+  interviews Interview[]
+}
+
+model Interview {
+  id            String   @id @default(uuid())
+  companyId     String
+  candidateId   String
+  jobId         String
+  interviewerId String
+  scheduledDate DateTime
+  scheduledTime String
+  duration      Int      @default(60)
+  type          String
+  status        String   @default("scheduled")
+  feedback      String?
+  rating        Int?
+  location      String?
+
+  company   Company        @relation(fields: [companyId], references: [id])
+  candidate Candidate      @relation(fields: [candidateId], references: [id])
+  job       JobRequisition @relation(fields: [jobId], references: [id])
+}
+
+model PayrollStructure {
+  id              String   @id @default(uuid())
+  companyId       String
+  name            String
+  basicPercentage Float
+  components      Json // Storing PayrollComponent array as JSON for flexibility
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model PayrollRun {
+  id              String   @id @default(uuid())
+  companyId       String
+  periodStart     DateTime
+  periodEnd       DateTime
+  runDate         DateTime
+  status          String   @default("draft")
+  totalEmployees  Int      @default(0)
+  totalGross      Float    @default(0)
+  totalDeductions Float    @default(0)
+  totalNet        Float    @default(0)
+  currency        String
+  processedBy     String?
+  approvedBy      String?
+  createdAt       DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  payslips Payslip[]
+}
+
+model Payslip {
+  id              String   @id @default(uuid())
+  companyId       String
+  payrollRunId    String
+  employeeId      String
+  periodStart     DateTime
+  periodEnd       DateTime
+  basic           Float
+  earnings        Json
+  deductions      Json
+  grossPay        Float
+  totalDeductions Float
+  netPay          Float
+  currency        String
+  status          String   @default("generated")
+
+  company    Company    @relation(fields: [companyId], references: [id])
+  payrollRun PayrollRun @relation(fields: [payrollRunId], references: [id])
+  employee   Employee   @relation(fields: [employeeId], references: [id])
+}
+
+model AttendanceRecord {
+  id         String   @id @default(uuid())
+  companyId  String
+  employeeId String
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  status     String
+  workHours  Float?
+  overtime   Float?
+  notes      String?
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Shift {
+  id            String  @id @default(uuid())
+  companyId     String
+  name          String
+  startTime     String
+  endTime       String
+  breakDuration Int
+  isDefault     Boolean @default(false)
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model LeaveType {
+  id              String  @id @default(uuid())
+  companyId       String
+  name            String
+  daysPerYear     Int
+  carryForward    Boolean @default(false)
+  maxCarryForward Int     @default(0)
+  color           String
+  isActive        Boolean @default(true)
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  leaveRequests LeaveRequest[]
+  leaveBalances LeaveBalance[]
+}
+
+model LeaveRequest {
+  id          String   @id @default(uuid())
+  companyId   String
+  employeeId  String
+  leaveTypeId String
+  startDate   DateTime
+  endDate     DateTime
+  days        Float
+  reason      String
+  status      String   @default("pending")
+  approvedBy  String?
+  comments    String?
+  createdAt   DateTime @default(now())
+
+  company   Company   @relation(fields: [companyId], references: [id])
+  employee  Employee  @relation(fields: [employeeId], references: [id])
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+}
+
+model LeaveBalance {
+  id          String @id @default(uuid())
+  employeeId  String
+  leaveTypeId String
+  total       Float
+  used        Float
+  pending     Float
+  available   Float
+
+  employee  Employee  @relation(fields: [employeeId], references: [id])
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+}
+
+model Goal {
+  id            String    @id @default(uuid())
+  companyId     String
+  employeeId    String
+  title         String
+  description   String
+  category      String
+  target        Float
+  current       Float     @default(0)
+  unit          String
+  status        String
+  priority      String
+  startDate     DateTime
+  dueDate       DateTime
+  completedDate DateTime?
+  createdAt     DateTime  @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model KPI {
+  id         String @id @default(uuid())
+  companyId  String
+  employeeId String
+  name       String
+  category   String
+  target     Float
+  actual     Float  @default(0)
+  unit       String
+  weight     Float
+  score      Float  @default(0)
+  period     String
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model PerformanceReview {
+  id           String   @id @default(uuid())
+  companyId    String
+  employeeId   String
+  reviewerId   String
+  period       String
+  year         Int
+  overallScore Float
+  strengths    String
+  improvements String
+  comments     String
+  goals        String[]
+  status       String   @default("draft")
+  createdAt    DateTime @default(now())
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  employee Employee @relation("Reviewee", fields: [employeeId], references: [id])
+  reviewer Employee @relation("Reviewer", fields: [reviewerId], references: [id])
+}
+
+model Course {
+  id              String   @id @default(uuid())
+  companyId       String
+  title           String
+  description     String
+  category        String
+  level           String
+  duration        Int
+  durationUnit    String
+  instructor      String
+  maxParticipants Int
+  enrolledCount   Int      @default(0)
+  completedCount  Int      @default(0)
+  thumbnail       String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  company             Company              @relation(fields: [companyId], references: [id])
+  trainingAssignments TrainingAssignment[]
+  certificates        Certificate[]
+}
+
+model TrainingAssignment {
+  id            String    @id @default(uuid())
+  companyId     String
+  courseId      String
+  employeeId    String
+  assignedDate  DateTime  @default(now())
+  dueDate       DateTime
+  completedDate DateTime?
+  status        String    @default("assigned")
+  progress      Int       @default(0)
+  score         Float?
+  certificateId String?
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  course   Course   @relation(fields: [courseId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+model Certificate {
+  id            String    @id @default(uuid())
+  companyId     String
+  employeeId    String
+  courseId      String
+  issueDate     DateTime  @default(now())
+  expiryDate    DateTime?
+  certificateNo String    @unique
+
+  company  Company  @relation(fields: [companyId], references: [id])
+  employee Employee @relation(fields: [employeeId], references: [id])
+  course   Course   @relation(fields: [courseId], references: [id])
+}
+
+model ComplianceItem {
+  id          String   @id @default(uuid())
+  companyId   String
+  employeeId  String?
+  type        String
+  name        String
+  description String
+  issuedDate  DateTime
+  expiryDate  DateTime
+  status      String
+  riskLevel   String
+  department  String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  company  Company   @relation(fields: [companyId], references: [id])
+  employee Employee? @relation(fields: [employeeId], references: [id])
+}
+
+model AuditLogEntry {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  userName  String
+  action    String
+  entity    String
+  entityId  String
+  details   String
+  ipAddress String
+  timestamp DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+}

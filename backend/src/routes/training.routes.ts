@@ -1,0 +1,105 @@
+import { Router, Response } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { AuthRequest } from '../middleware/auth';
+import { v4 as uuidv4 } from 'uuid';
+
+const prisma = new PrismaClient();
+const router = Router();
+
+// ---- Courses ----
+router.get('/courses', async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await prisma.course.findMany({
+      where: { companyId: req.company!.id }
+    });
+    res.json({ success: true, data: items });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch courses' });
+  }
+});
+
+router.get('/courses/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const item = await prisma.course.findUnique({ where: { id: req.params.id } });
+    if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch course' });
+  }
+});
+
+router.post('/courses', async (req: AuthRequest, res: Response) => {
+  try {
+    const newItem = await prisma.course.create({
+      data: {
+        companyId: req.company!.id,
+        ...req.body
+      }
+    });
+    res.status(201).json({ success: true, data: newItem });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to create course' });
+  }
+});
+
+// ---- Assignments ----
+router.get('/assignments', async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await prisma.trainingAssignment.findMany({
+      where: { companyId: req.company!.id },
+      include: { employee: true, course: true }
+    });
+    res.json({ success: true, data: items });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch assignments' });
+  }
+});
+
+router.post('/assignments/:id/complete', async (req: AuthRequest, res: Response) => {
+  try {
+    const item = await prisma.trainingAssignment.findUnique({ where: { id: req.params.id } });
+    if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
+    
+    const updated = await prisma.trainingAssignment.update({
+      where: { id: req.params.id },
+      data: {
+        status: 'completed',
+        score: req.body.score,
+        completedAt: new Date()
+      }
+    });
+    
+    // Create certificate
+    const certId = uuidv4();
+    await prisma.certificate.create({
+      data: {
+        id: certId,
+        companyId: req.company!.id,
+        employeeId: item.employeeId,
+        courseId: item.courseId,
+        issueDate: new Date(),
+        expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
+        certificateUrl: `/certs/${certId}.pdf`,
+      }
+    });
+    
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to complete assignment' });
+  }
+});
+
+// ---- Certificates ----
+router.get('/certificates', async (req: AuthRequest, res: Response) => {
+  try {
+    const items = await prisma.certificate.findMany({
+      where: { companyId: req.company!.id },
+      include: { employee: true, course: true }
+    });
+    res.json({ success: true, data: items });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Failed to fetch certificates' });
+  }
+});
+
+export default router;
