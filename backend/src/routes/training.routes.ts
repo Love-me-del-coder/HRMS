@@ -27,7 +27,7 @@ router.get('/courses/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/courses', async (req: AuthRequest, res: Response) => {
+router.post('/courses', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.course.create({
       data: {
@@ -64,7 +64,7 @@ router.post('/assignments/:id/complete', async (req: AuthRequest, res: Response)
       data: {
         status: 'completed',
         score: req.body.score,
-        completedAt: new Date()
+        completedDate: new Date()
       }
     });
     
@@ -78,7 +78,7 @@ router.post('/assignments/:id/complete', async (req: AuthRequest, res: Response)
         courseId: item.courseId,
         issueDate: new Date(),
         expiryDate: req.body.expiryDate ? new Date(req.body.expiryDate) : null,
-        certificateUrl: `/certs/${certId}.pdf`,
+        certificateNo: certId.split('-')[0].toUpperCase(),
       }
     });
     
