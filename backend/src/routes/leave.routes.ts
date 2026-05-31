@@ -119,8 +119,8 @@ router.post('/requests/:id/approve', authorizeRoles(...hrRoles), async (req: Aut
     });
 
     // Send Email Notification in the background
-    if (updated.employee?.user?.[0]?.email) {
-      const email = updated.employee.user[0].email;
+    if (updated.employee?.user?.email) {
+      const email = updated.employee.user.email;
       sendEmail(
         email, 
         'Leave Request Approved', 
