@@ -1,0 +1,8 @@
+
+> hrms-saas-backend@1.0.0 dev
+> tsx watch src/server.ts
+
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+⚠️ SUPABASE_URL or SUPABASE_KEY is missing. File uploads will fail unless added to .env.
+◇ injected env (0) from .env // tip: ⌘ override existing { override: true }
+HRMS Backend Server running on http://localhost:3001

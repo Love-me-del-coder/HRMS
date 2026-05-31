@@ -1,9 +1,8 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { AuthRequest, authorizeRoles, hasSelfOrAdminAccess } from '../middleware/auth';
 import { sendEmail } from '../services/email.service';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 const hrRoles = ['company_admin', 'hr_manager', 'manager'];

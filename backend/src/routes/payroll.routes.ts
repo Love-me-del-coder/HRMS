@@ -1,10 +1,9 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import PDFDocument from 'pdfkit';
 import { AuthRequest, authorizeRoles, hasSelfOrAdminAccess } from '../middleware/auth';
 import { sendEmail } from '../services/email.service';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 const payrollRoles = ['company_admin', 'hr_manager', 'finance_manager'];
@@ -87,31 +86,37 @@ router.post('/runs/:id/process', authorizeRoles(...payrollRoles), async (req: Au
 
       const payslipsToCreate = employees.map(emp => {
         // Sri Lankan Standard Calculations (Simplified for prototype)
-        const basicSalary = emp.salary || 0;
+        const basic = emp.salary || 0;
         
         // EPF: 8% from Employee
-        const epfDeduction = basicSalary * 0.08;
+        const epfDeduction = basic * 0.08;
         
         // Simplified PAYE Tax (Basic bracket assumption for prototype)
         // e.g. Above 100,000 LKR, tax 6% on excess
         let payeTax = 0;
-        if (basicSalary > 100000) {
-          payeTax = (basicSalary - 100000) * 0.06; 
+        if (basic > 100000) {
+          payeTax = (basic - 100000) * 0.06;
         }
 
-        const allowances = 0; // In a real app, fetched from payroll structures/allowances table
-        const deductions = epfDeduction + payeTax;
-        
-        const netPay = (basicSalary + allowances) - deductions;
+        const allowanceAmount = 0;
+        const totalDeductions = epfDeduction + payeTax;
+        const grossPay = basic + allowanceAmount;
+        const netPay = grossPay - totalDeductions;
 
         return {
           companyId,
           employeeId: emp.id,
           payrollRunId: runId,
-          basicSalary,
-          allowances,
-          deductions,
+          periodStart: run.periodStart,
+          periodEnd: run.periodEnd,
+          basic: basic,
+          earnings: { allowances: allowanceAmount },
+          deductions: { epf: epfDeduction, paye: payeTax },
+          grossPay,
+          totalDeductions,
           netPay,
+          currency: run.currency,
+          status: 'generated'
         };
       });
 
@@ -238,9 +243,9 @@ router.get('/payslips/:id/pdf', async (req: AuthRequest, res: Response) => {
     doc.text(`Payroll Date: ${item.payrollRun.runDate.toDateString()}`);
     doc.moveDown();
     
-    doc.text(`Basic Salary: ${item.basicSalary.toString()} LKR`);
-    doc.text(`Allowances: ${item.allowances.toString()} LKR`);
-    doc.text(`Total Deductions (EPF/PAYE): ${item.deductions.toString()} LKR`);
+    doc.text(`Basic Salary: ${item.basic.toString()} LKR`);
+    doc.text(`Earnings: ${JSON.stringify(item.earnings)} LKR`);
+    doc.text(`Total Deductions (EPF/PAYE): ${item.totalDeductions.toString()} LKR`);
     doc.moveDown();
     
     doc.fontSize(14).text(`NET PAY: ${item.netPay.toString()} LKR`, { underline: true });

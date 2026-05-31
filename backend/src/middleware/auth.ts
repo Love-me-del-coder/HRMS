@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { jwtVerify } from 'jose';
-import { PrismaClient, User, Company } from '@prisma/client';
+import { User, Company } from '@prisma/client';
+import prisma from '../lib/prisma';
+import dotenv from 'dotenv';
 
-const prisma = new PrismaClient();
-export const JWT_SECRET = new TextEncoder().encode('hrms-saas-secret-key-2024-very-secure');
+dotenv.config();
+
+export const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'hrms-saas-secret-key-2024-very-secure');
 
 export interface AuthRequest extends Request {
   user?: User;

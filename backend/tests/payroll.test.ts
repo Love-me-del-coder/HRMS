@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 // Mocking Prisma Client to avoid hitting a real DB during unit tests
 jest.mock('@prisma/client', () => {
-  const mPrisma = {
+  const mPrisma: any = {
     employee: {
       findMany: jest.fn(),
     },
@@ -14,7 +14,7 @@ jest.mock('@prisma/client', () => {
       deleteMany: jest.fn(),
       createMany: jest.fn(),
     },
-    $transaction: jest.fn((callback) => callback(mPrisma)),
+    $transaction: jest.fn((callback: any) => callback(mPrisma)),
   };
   return { PrismaClient: jest.fn(() => mPrisma) };
 });

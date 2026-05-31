@@ -43,10 +43,15 @@ function PayrollPage() {
   const pendingCount = runs.filter((r: any) => r.status !== 'completed').length;
   
   const handleProcessPayroll = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
     createRunMutation.mutate({
-      period: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
-      status: 'draft',
-      totalAmount: 0
+      periodStart: start.toISOString(),
+      periodEnd: end.toISOString(),
+      runDate: now.toISOString(),
+      currency: 'LKR'
     });
   };
 
@@ -74,9 +79,9 @@ function PayrollPage() {
             <DataTable 
               columns={[
                 { key: 'id', title: 'Run ID', render: (item: any) => <span className="font-mono text-xs">{item.id?.slice(0, 8)}</span> },
-                { key: 'period', title: 'Period', sortable: true },
-                { key: 'createdAt', title: 'Run Date', render: (item: any) => item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '' },
-                { key: 'totalAmount', title: 'Total Amount', render: (item: any) => <span className="font-semibold">LKR {item.totalAmount?.toLocaleString() || 0}</span> },
+                { key: 'period', title: 'Period', render: (item: any) => `${new Date(item.periodStart).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}` },
+                { key: 'createdAt', title: 'Run Date', render: (item: any) => item.runDate ? new Date(item.runDate).toLocaleDateString() : '' },
+                { key: 'totalGross', title: 'Total Amount', render: (item: any) => <span className="font-semibold">LKR {item.totalGross?.toLocaleString() || 0}</span> },
                 { key: 'status', title: 'Status', render: (item: any) => (
                     <Badge variant={item.status === 'completed' ? 'success' : item.status === 'processing' ? 'primary' : 'warning'} dot className="capitalize">
                       {item.status}
