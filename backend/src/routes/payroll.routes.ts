@@ -3,6 +3,7 @@ import prisma from '../lib/prisma';
 import PDFDocument from 'pdfkit';
 import { AuthRequest, authorizeRoles, hasSelfOrAdminAccess } from '../middleware/auth';
 import { sendEmail } from '../services/email.service';
+import * as payrollService from '../services/payroll.service';
 
 const router = Router();
 
@@ -85,23 +86,7 @@ router.post('/runs/:id/process', authorizeRoles(...payrollRoles), async (req: Au
       });
 
       const payslipsToCreate = employees.map(emp => {
-        // Sri Lankan Standard Calculations (Simplified for prototype)
-        const basic = emp.salary || 0;
-        
-        // EPF: 8% from Employee
-        const epfDeduction = basic * 0.08;
-        
-        // Simplified PAYE Tax (Basic bracket assumption for prototype)
-        // e.g. Above 100,000 LKR, tax 6% on excess
-        let payeTax = 0;
-        if (basic > 100000) {
-          payeTax = (basic - 100000) * 0.06;
-        }
-
-        const allowanceAmount = 0;
-        const totalDeductions = epfDeduction + payeTax;
-        const grossPay = basic + allowanceAmount;
-        const netPay = grossPay - totalDeductions;
+        const calc = payrollService.calculatePayslip(emp.salary);
 
         return {
           companyId,
@@ -109,12 +94,12 @@ router.post('/runs/:id/process', authorizeRoles(...payrollRoles), async (req: Au
           payrollRunId: runId,
           periodStart: run.periodStart,
           periodEnd: run.periodEnd,
-          basic: basic,
-          earnings: { allowances: allowanceAmount },
-          deductions: { epf: epfDeduction, paye: payeTax },
-          grossPay,
-          totalDeductions,
-          netPay,
+          basic: calc.basic,
+          earnings: { allowances: calc.allowanceAmount },
+          deductions: { epf: calc.epfDeduction, paye: calc.payeTax },
+          grossPay: calc.grossPay,
+          totalDeductions: calc.totalDeductions,
+          netPay: calc.netPay,
           currency: run.currency,
           status: 'generated'
         };
@@ -159,7 +144,7 @@ router.post('/runs/:id/approve', authorizeRoles(...payrollRoles), async (req: Au
       include: { employee: { include: { user: true } } }
     }).then(payslips => {
       payslips.forEach(p => {
-        const email = p.employee?.user?.[0]?.email;
+        const email = p.employee?.user?.email;
         if (email) {
           sendEmail(
             email,

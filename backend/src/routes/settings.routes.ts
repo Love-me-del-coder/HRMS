@@ -1,11 +1,12 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
 import { AuthRequest, authorizeRoles } from '../middleware/auth';
+import bcrypt from 'bcryptjs';
 
 const router = Router();
 
 // ---- Company Profile ----
-router.get('/company', async (req: AuthRequest, res: Response) => {
+router.get('/company', authorizeRoles('company_admin'), async (req: AuthRequest, res: Response) => {
   try {
     const company = await prisma.company.findUnique({ where: { id: req.company!.id } });
     res.json({ success: true, data: company });
@@ -43,11 +44,12 @@ router.get('/users', authorizeRoles('company_admin'), async (req: AuthRequest, r
 
 router.post('/users', authorizeRoles('company_admin'), async (req: AuthRequest, res: Response) => {
   try {
+    const hashedPassword = await bcrypt.hash('pending', 10);
     const newUser = await prisma.user.create({
       data: {
         companyId: req.company!.id,
         ...req.body,
-        password: 'pending', // Would be generated/emailed or handled separately
+        password: hashedPassword, // Would be generated/emailed or handled separately
       }
     });
     const { password, ...safeUser } = newUser;

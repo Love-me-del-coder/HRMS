@@ -4,6 +4,26 @@ import { AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
+/**
+ * Helper to get the current date at midnight in the company's timezone
+ */
+const getCompanyToday = (timezone: string = 'UTC'): Date => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  });
+
+  const parts = formatter.formatToParts(now);
+  const year = parseInt(parts.find(p => p.type === 'year')!.value);
+  const month = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+  const day = parseInt(parts.find(p => p.type === 'day')!.value);
+
+  return new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+};
+
 // ---- Attendance Records ----
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -29,8 +49,20 @@ router.post('/check-in', async (req: AuthRequest, res: Response) => {
     const employeeId = req.user!.employeeId;
     if (!employeeId) return res.status(400).json({ success: false, error: 'User is not linked to an employee profile' });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getCompanyToday(req.company!.timezone);
+
+    // Check if already checked in today
+    const existing = await prisma.attendanceRecord.findFirst({
+      where: {
+        companyId,
+        employeeId,
+        date: today,
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'You have already checked in for today' });
+    }
 
     const newItem = await prisma.attendanceRecord.create({
       data: {
@@ -53,8 +85,7 @@ router.post('/check-out', async (req: AuthRequest, res: Response) => {
     const employeeId = req.user!.employeeId;
     if (!employeeId) return res.status(400).json({ success: false, error: 'User is not linked to an employee profile' });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getCompanyToday(req.company!.timezone);
     
     // Find today's record
     const records = await prisma.attendanceRecord.findMany({

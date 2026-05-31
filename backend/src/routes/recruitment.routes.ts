@@ -5,7 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 const router = Router();
 
 // ---- Jobs ----
-router.get('/jobs', async (req: AuthRequest, res: Response) => {
+router.get('/jobs', authorizeRoles('company_admin', 'hr_manager', 'employee'), async (req: AuthRequest, res: Response) => {
   try {
     const items = await prisma.jobRequisition.findMany({
       where: { companyId: req.company!.id },
@@ -17,7 +17,7 @@ router.get('/jobs', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.get('/jobs/:id', async (req: AuthRequest, res: Response) => {
+router.get('/jobs/:id', authorizeRoles('company_admin', 'hr_manager', 'employee'), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.jobRequisition.findUnique({
       where: { id: req.params.id },
@@ -30,7 +30,7 @@ router.get('/jobs/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/jobs', async (req: AuthRequest, res: Response) => {
+router.post('/jobs', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.jobRequisition.create({
       data: {
@@ -44,7 +44,7 @@ router.post('/jobs', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/jobs/:id', async (req: AuthRequest, res: Response) => {
+router.put('/jobs/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.jobRequisition.findUnique({ where: { id: req.params.id } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -59,7 +59,7 @@ router.put('/jobs/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // ---- Candidates ----
-router.get('/candidates', async (req: AuthRequest, res: Response) => {
+router.get('/candidates', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const items = await prisma.candidate.findMany({
       where: { companyId: req.company!.id },
@@ -71,7 +71,7 @@ router.get('/candidates', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.get('/candidates/:id', async (req: AuthRequest, res: Response) => {
+router.get('/candidates/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.candidate.findUnique({
       where: { id: req.params.id },
@@ -84,7 +84,7 @@ router.get('/candidates/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/candidates', async (req: AuthRequest, res: Response) => {
+router.post('/candidates', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.candidate.create({
       data: {
@@ -98,7 +98,7 @@ router.post('/candidates', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/candidates/:id/stage', async (req: AuthRequest, res: Response) => {
+router.put('/candidates/:id/stage', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.candidate.findUnique({ where: { id: req.params.id } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -113,7 +113,7 @@ router.put('/candidates/:id/stage', async (req: AuthRequest, res: Response) => {
 });
 
 // ---- Interviews ----
-router.get('/interviews', async (req: AuthRequest, res: Response) => {
+router.get('/interviews', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const items = await prisma.interview.findMany({
       where: { companyId: req.company!.id },
@@ -125,7 +125,7 @@ router.get('/interviews', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/interviews', async (req: AuthRequest, res: Response) => {
+router.post('/interviews', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.interview.create({
       data: {

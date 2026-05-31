@@ -15,7 +15,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.department.create({
       data: {
