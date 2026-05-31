@@ -55,12 +55,36 @@ router.get('/:id', async (req: AuthRequest, res: Response) => {
 // Create employee (Admin/HR only)
 router.post('/', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const data = { ...req.body, companyId: req.company!.id };
+    const companyId = req.company!.id;
+    const data = { ...req.body, companyId };
     if (data.dateOfBirth) data.dateOfBirth = new Date(data.dateOfBirth);
     if (data.hireDate) data.hireDate = new Date(data.hireDate);
     
-    const newEmployee = await prisma.employee.create({ data });
-    res.status(201).json({ success: true, data: newEmployee });
+    const result = await prisma.$transaction(async (tx) => {
+      const newEmployee = await tx.employee.create({ data });
+
+      // Initialize Leave Balances for all active leave types
+      const leaveTypes = await tx.leaveType.findMany({
+        where: { companyId, isActive: true }
+      });
+
+      if (leaveTypes.length > 0) {
+        await tx.leaveBalance.createMany({
+          data: leaveTypes.map(lt => ({
+            employeeId: newEmployee.id,
+            leaveTypeId: lt.id,
+            total: lt.daysPerYear,
+            used: 0,
+            pending: 0,
+            available: lt.daysPerYear
+          }))
+        });
+      }
+
+      return newEmployee;
+    });
+
+    res.status(201).json({ success: true, data: result });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: 'Failed to create employee' });

@@ -1,9 +1,11 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
+
+const trainingRoles = ['company_admin', 'hr_manager', 'trainer'];
 
 // ---- Courses ----
 router.get('/courses', async (req: AuthRequest, res: Response) => {
@@ -27,7 +29,7 @@ router.get('/courses/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/courses', async (req: AuthRequest, res: Response) => {
+router.post('/courses', authorizeRoles(...trainingRoles), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.course.create({
       data: {
@@ -64,7 +66,7 @@ router.post('/assignments/:id/complete', async (req: AuthRequest, res: Response)
       data: {
         status: 'completed',
         score: req.body.score,
-        completedAt: new Date()
+        completedDate: new Date()
       }
     });
     

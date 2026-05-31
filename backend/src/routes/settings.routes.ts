@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
+import bcrypt from 'bcryptjs';
 import { AuthRequest, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
@@ -43,11 +44,17 @@ router.get('/users', authorizeRoles('company_admin'), async (req: AuthRequest, r
 
 router.post('/users', authorizeRoles('company_admin'), async (req: AuthRequest, res: Response) => {
   try {
+    const { password: plainPassword, ...userData } = req.body;
+
+    // In a real system, we'd send an invite email. For now, we hash a provided password or a random one.
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(plainPassword || Math.random().toString(36).slice(-10), salt);
+
     const newUser = await prisma.user.create({
       data: {
         companyId: req.company!.id,
-        ...req.body,
-        password: 'pending', // Would be generated/emailed or handled separately
+        ...userData,
+        password: hashedPassword,
       }
     });
     const { password, ...safeUser } = newUser;

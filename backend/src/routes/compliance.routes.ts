@@ -1,8 +1,10 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
+
+const complianceRoles = ['company_admin', 'hr_manager', 'compliance_officer'];
 
 // ---- Compliance Items ----
 router.get('/items', async (req: AuthRequest, res: Response) => {
@@ -16,7 +18,7 @@ router.get('/items', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/items', async (req: AuthRequest, res: Response) => {
+router.post('/items', authorizeRoles(...complianceRoles), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.complianceItem.create({
       data: {
@@ -30,7 +32,7 @@ router.post('/items', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/items/:id', async (req: AuthRequest, res: Response) => {
+router.put('/items/:id', authorizeRoles(...complianceRoles), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.complianceItem.findUnique({ where: { id: req.params.id } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -85,7 +87,7 @@ router.get('/expiring', async (req: AuthRequest, res: Response) => {
 // ---- Audit Log ----
 router.get('/audit-log', async (req: AuthRequest, res: Response) => {
   try {
-    const items = await prisma.auditLog.findMany({
+    const items = await prisma.auditLogEntry.findMany({
       where: { companyId: req.company!.id },
       include: { user: true }
     });

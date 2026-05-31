@@ -23,14 +23,36 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
+/**
+ * Helper to get the start of the day in the company's timezone.
+ */
+const getCompanyToday = (timezone: string = 'UTC') => {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { timeZone: timezone });
+  const today = new Date(dateStr);
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
 router.post('/check-in', async (req: AuthRequest, res: Response) => {
   try {
     const companyId = req.company!.id;
     const employeeId = req.user!.employeeId;
     if (!employeeId) return res.status(400).json({ success: false, error: 'User is not linked to an employee profile' });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getCompanyToday(req.company!.timezone);
+
+    // Prevent duplicate check-ins for the same day
+    const existing = await prisma.attendanceRecord.findFirst({
+      where: {
+        employeeId,
+        date: today
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Already checked in for today' });
+    }
 
     const newItem = await prisma.attendanceRecord.create({
       data: {
@@ -53,8 +75,7 @@ router.post('/check-out', async (req: AuthRequest, res: Response) => {
     const employeeId = req.user!.employeeId;
     if (!employeeId) return res.status(400).json({ success: false, error: 'User is not linked to an employee profile' });
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = getCompanyToday(req.company!.timezone);
     
     // Find today's record
     const records = await prisma.attendanceRecord.findMany({

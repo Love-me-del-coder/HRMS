@@ -1,8 +1,10 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
+
+const performanceRoles = ['company_admin', 'hr_manager', 'manager'];
 
 // ---- Goals ----
 router.get('/goals', async (req: AuthRequest, res: Response) => {
@@ -17,7 +19,7 @@ router.get('/goals', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/goals', async (req: AuthRequest, res: Response) => {
+router.post('/goals', authorizeRoles(...performanceRoles), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.goal.create({
       data: {
@@ -31,7 +33,7 @@ router.post('/goals', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.put('/goals/:id', async (req: AuthRequest, res: Response) => {
+router.put('/goals/:id', authorizeRoles(...performanceRoles), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.goal.findUnique({ where: { id: req.params.id } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -71,7 +73,7 @@ router.get('/reviews', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/reviews', async (req: AuthRequest, res: Response) => {
+router.post('/reviews', authorizeRoles(...performanceRoles), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.performanceReview.create({
       data: {

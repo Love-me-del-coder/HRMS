@@ -1,8 +1,10 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
+
+const hrRoles = ['company_admin', 'hr_manager'];
 
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -15,7 +17,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post('/', async (req: AuthRequest, res: Response) => {
+router.post('/', authorizeRoles(...hrRoles), async (req: AuthRequest, res: Response) => {
   try {
     const newItem = await prisma.department.create({
       data: {
