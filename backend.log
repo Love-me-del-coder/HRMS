@@ -1,0 +1,8 @@
+
+> hrms-saas-backend@1.0.0 dev
+> tsx watch src/server.ts
+
+◇ injected env (0) from .env // tip: ◈ secrets for agents [www.dotenvx.com]
+⚠️ SUPABASE_URL or SUPABASE_KEY is missing. File uploads will fail unless added to .env.
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+HRMS Backend Server running on http://localhost:3001

@@ -1,10 +1,9 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { JWT_SECRET, AuthRequest, authenticate } from '../middleware/auth';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 router.post('/login', async (req: Request, res: Response) => {

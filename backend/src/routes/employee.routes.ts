@@ -1,8 +1,7 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma';
 import { AuthRequest, authorizeRoles, hasSelfOrAdminAccess } from '../middleware/auth';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 // List all employees - accessible to everyone, but we could strip sensitive data
@@ -13,9 +12,17 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       include: { department: true }
     });
     
-    // If not admin/hr, strip sensitive fields like socialSecurityNumber, salary etc.
-    // For now we'll just return it since this is a prototype, but in real-world we map this.
-    res.json({ success: true, data: employees });
+    const isAdminOrHr = ['company_admin', 'hr_manager'].includes(req.user!.role);
+
+    const sanitizedEmployees = employees.map(emp => {
+      if (isAdminOrHr) return emp;
+
+      // Strip sensitive fields for normal users
+      const { salary, ...publicData } = emp;
+      return publicData;
+    });
+
+    res.json({ success: true, data: sanitizedEmployees });
   } catch (error) {
     res.status(500).json({ success: false, error: 'Failed to fetch employees' });
   }
