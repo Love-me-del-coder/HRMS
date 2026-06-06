@@ -61,11 +61,11 @@ router.post('/users', authorizeRoles('company_admin'), async (req: AuthRequest, 
 
 router.put('/users/:id', authorizeRoles('company_admin'), async (req: AuthRequest, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    const user = await prisma.user.findUnique({ where: { id: req.params.id as string } });
     if (!user || user.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     
     const updated = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: req.body
     });
     const { password, ...safeUser } = updated;

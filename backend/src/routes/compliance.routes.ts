@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
 
@@ -32,10 +32,10 @@ router.post('/items', authorizeRoles('company_admin', 'hr_manager'), async (req:
 
 router.put('/items/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.complianceItem.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.complianceItem.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     const updated = await prisma.complianceItem.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: req.body
     });
     res.json({ success: true, data: updated });

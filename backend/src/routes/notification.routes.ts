@@ -22,7 +22,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.put('/:id/read', async (req: AuthRequest, res: Response) => {
   try {
     const updated = await prisma.notification.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { isRead: true }
     });
     res.json({ success: true, data: updated });

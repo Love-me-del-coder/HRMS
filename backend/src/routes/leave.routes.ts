@@ -67,7 +67,7 @@ router.post('/requests', async (req: AuthRequest, res: Response) => {
 // BUSINESS LOGIC: Transactional Approval
 router.post('/requests/:id/approve', authorizeRoles(...hrRoles), async (req: AuthRequest, res: Response) => {
   try {
-    const requestItem = await prisma.leaveRequest.findUnique({ where: { id: req.params.id } });
+    const requestItem = await prisma.leaveRequest.findUnique({ where: { id: req.params.id as string } });
     if (!requestItem || requestItem.companyId !== req.company!.id) {
       return res.status(404).json({ success: false, error: 'Not found' });
     }
@@ -119,8 +119,8 @@ router.post('/requests/:id/approve', authorizeRoles(...hrRoles), async (req: Aut
     });
 
     // Send Email Notification in the background
-    if (updated.employee?.user?.[0]?.email) {
-      const email = updated.employee.user[0].email;
+    if (updated.employee?.user?.email) {
+      const email = updated.employee.user.email;
       sendEmail(
         email, 
         'Leave Request Approved', 
@@ -136,7 +136,7 @@ router.post('/requests/:id/approve', authorizeRoles(...hrRoles), async (req: Aut
 
 router.post('/requests/:id/reject', authorizeRoles(...hrRoles), async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.leaveRequest.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.leaveRequest.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     
     if (item.status === 'approved') {
@@ -145,7 +145,7 @@ router.post('/requests/:id/reject', authorizeRoles(...hrRoles), async (req: Auth
     }
 
     const updated = await prisma.leaveRequest.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status: 'rejected',
         approvedBy: req.user!.id,
