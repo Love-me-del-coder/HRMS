@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
@@ -19,7 +19,7 @@ router.get('/courses', async (req: AuthRequest, res: Response) => {
 
 router.get('/courses/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.course.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.course.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     res.json({ success: true, data: item });
   } catch (error) {
@@ -56,11 +56,11 @@ router.get('/assignments', async (req: AuthRequest, res: Response) => {
 
 router.post('/assignments/:id/complete', async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.trainingAssignment.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.trainingAssignment.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     
     const updated = await prisma.trainingAssignment.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status: 'completed',
         score: req.body.score,

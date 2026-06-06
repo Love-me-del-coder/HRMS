@@ -32,7 +32,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const employee = await prisma.employee.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { department: true }
     });
     
@@ -93,7 +93,7 @@ router.post('/', authorizeRoles('company_admin', 'hr_manager'), async (req: Auth
 // Update employee (Admin/HR only)
 router.put('/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const employee = await prisma.employee.findUnique({ where: { id: req.params.id } });
+    const employee = await prisma.employee.findUnique({ where: { id: req.params.id as string } });
     if (!employee || employee.companyId !== req.company!.id) {
       res.status(404).json({ success: false, error: 'Employee not found' });
       return;
@@ -104,7 +104,7 @@ router.put('/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: Au
     if (data.hireDate) data.hireDate = new Date(data.hireDate);
     
     const updated = await prisma.employee.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data
     });
     res.json({ success: true, data: updated });
@@ -116,13 +116,13 @@ router.put('/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: Au
 // Terminate employee (Admin/HR only)
 router.delete('/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const employee = await prisma.employee.findUnique({ where: { id: req.params.id } });
+    const employee = await prisma.employee.findUnique({ where: { id: req.params.id as string } });
     if (!employee || employee.companyId !== req.company!.id) {
       res.status(404).json({ success: false, error: 'Employee not found' });
       return;
     }
     const updated = await prisma.employee.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { status: 'terminated' }
     });
     res.json({ success: true, data: updated });

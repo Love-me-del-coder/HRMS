@@ -25,7 +25,7 @@ router.get('/runs', authorizeRoles(...payrollRoles), async (req: AuthRequest, re
 router.get('/runs/:id', authorizeRoles(...payrollRoles), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.payrollRun.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { payslips: { include: { employee: true } } }
     });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -56,7 +56,7 @@ router.post('/runs', authorizeRoles(...payrollRoles), async (req: AuthRequest, r
 // BUSINESS LOGIC: Payroll Generation Engine
 router.post('/runs/:id/process', authorizeRoles(...payrollRoles), async (req: AuthRequest, res: Response) => {
   try {
-    const runId = req.params.id;
+    const runId = req.params.id as string;
     const companyId = req.company!.id;
 
     const run = await prisma.payrollRun.findUnique({ where: { id: runId } });
@@ -115,8 +115,7 @@ router.post('/runs/:id/process', authorizeRoles(...payrollRoles), async (req: Au
         where: { id: runId },
         data: { 
           status: 'processing', 
-          processedBy: req.user!.id,
-          updatedAt: new Date()
+          processedBy: req.user!.id
         }
       });
     });
@@ -129,18 +128,18 @@ router.post('/runs/:id/process', authorizeRoles(...payrollRoles), async (req: Au
 
 router.post('/runs/:id/approve', authorizeRoles(...payrollRoles), async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.payrollRun.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.payrollRun.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     
     // In a real system, this might trigger emails to employees with their PDF payslips attached
     const updated = await prisma.payrollRun.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { status: 'completed', approvedBy: req.user!.id }
     });
 
     // Send Payslip emails asynchronously
     prisma.payslip.findMany({
-      where: { payrollRunId: req.params.id },
+      where: { payrollRunId: req.params.id as string },
       include: { employee: { include: { user: true } } }
     }).then(payslips => {
       payslips.forEach(p => {
@@ -167,7 +166,7 @@ router.get('/runs/:runId/payslips', authorizeRoles(...payrollRoles), async (req:
     const items = await prisma.payslip.findMany({
       where: { 
         companyId: req.company!.id,
-        payrollRunId: req.params.runId 
+        payrollRunId: req.params.runId as string
       },
       include: { employee: true }
     });
@@ -180,7 +179,7 @@ router.get('/runs/:runId/payslips', authorizeRoles(...payrollRoles), async (req:
 router.get('/payslips/:id', async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.payslip.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { employee: true, payrollRun: true }
     });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -199,7 +198,7 @@ router.get('/payslips/:id', async (req: AuthRequest, res: Response) => {
 router.get('/payslips/:id/pdf', async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.payslip.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { employee: true, payrollRun: true }
     });
     

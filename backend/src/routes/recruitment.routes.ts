@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import prisma from '../lib/prisma';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest, authorizeRoles } from '../middleware/auth';
 
 const router = Router();
 
@@ -20,7 +20,7 @@ router.get('/jobs', authorizeRoles('company_admin', 'hr_manager', 'employee'), a
 router.get('/jobs/:id', authorizeRoles('company_admin', 'hr_manager', 'employee'), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.jobRequisition.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { department: true, candidates: true }
     });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -46,10 +46,10 @@ router.post('/jobs', authorizeRoles('company_admin', 'hr_manager'), async (req: 
 
 router.put('/jobs/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.jobRequisition.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.jobRequisition.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     const updated = await prisma.jobRequisition.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: req.body
     });
     res.json({ success: true, data: updated });
@@ -74,7 +74,7 @@ router.get('/candidates', authorizeRoles('company_admin', 'hr_manager'), async (
 router.get('/candidates/:id', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
     const item = await prisma.candidate.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       include: { job: true, interviews: true }
     });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
@@ -100,10 +100,10 @@ router.post('/candidates', authorizeRoles('company_admin', 'hr_manager'), async 
 
 router.put('/candidates/:id/stage', authorizeRoles('company_admin', 'hr_manager'), async (req: AuthRequest, res: Response) => {
   try {
-    const item = await prisma.candidate.findUnique({ where: { id: req.params.id } });
+    const item = await prisma.candidate.findUnique({ where: { id: req.params.id as string } });
     if (!item || item.companyId !== req.company!.id) return res.status(404).json({ success: false, error: 'Not found' });
     const updated = await prisma.candidate.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: { stage: req.body.stage }
     });
     res.json({ success: true, data: updated });
